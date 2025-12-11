@@ -1,0 +1,19 @@
+# node / build
+node_modules/
+dist/
+build/
+
+# env / credentials
+.env
+.env.local
+.env.*.local
+*.key
+*.pem
+serviceAccount*.json
+
+# firebase local cache / emulators
+.firebase/
+
+# editor / OS
+.vscode/
+.DS_Store

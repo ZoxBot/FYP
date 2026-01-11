@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
@@ -29,11 +30,28 @@ const navItems = [
 
 export function MainNav({ isCollapsed }: { isCollapsed: boolean }) {
   const pathname = usePathname();
+  const [isAdmin, setIsAdmin] = useState(false);
 
+  useEffect(() => {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        setIsAdmin(user.role === 'admin');
+      } catch (e) {
+        console.error("Failed to parse user from localStorage", e);
+      }
+    }
+  }, []);
+
+  const filteredNavItems = navItems.filter(item => {
+    if (item.href === '/admin') return isAdmin;
+    return true;
+  });
   return (
     <TooltipProvider>
       <nav className="grid gap-2 px-2">
-        {navItems.map((item) => {
+        {filteredNavItems.map((item) => {
           const isActive = pathname.startsWith(item.href);
           return isCollapsed ? (
             <Tooltip key={item.href} delayDuration={0}>

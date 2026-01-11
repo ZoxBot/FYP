@@ -36,9 +36,16 @@ export default function LoginPage() {
         throw new Error(data.message || 'Login failed');
       }
 
-      // Save token
-      // localStorage.setItem('token', data.token);
-      router.push("/dashboard");
+      // Save token and user
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+
+      // Role-based redirection
+      if (data.user && data.user.role === 'admin') {
+        router.push("/admin");
+      } else {
+        router.push("/dashboard");
+      }
     } catch (err: any) {
       setError(err.message);
     } finally {

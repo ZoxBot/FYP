@@ -19,9 +19,14 @@ function CallbackContent() {
             // I'll stick to provided patterns or just redirect.
             // But we probably need to persist it.
             localStorage.setItem('token', token);
+            const role = searchParams.get('role');
 
-            // Redirect to dashboard
-            router.push('/dashboard');
+            // Redirect based on role
+            if (role === 'admin') {
+                router.push('/admin');
+            } else {
+                router.push('/dashboard');
+            }
         } else {
             // If no token, something went wrong, go back to login
             router.push('/login?error=oauth_failed');

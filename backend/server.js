@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken');
 const db = require('./db');
 const session = require('express-session');
 const passport = require('./passport');
+const { verifyToken, verifyAdmin } = require('./middleware/authMiddleware');
 require('dotenv').config();
 
 const app = express();
@@ -85,6 +86,10 @@ app.post('/api/auth/login', async (req, res) => {
 
         const user = result.rows[0];
 
+        if (user.is_banned) {
+            return res.status(403).json({ message: 'Your account has been banned. Please contact support.' });
+        }
+
         // Check password
         // If user created via OAuth, they might not have a password
         if (!user.password_hash) {
@@ -118,6 +123,69 @@ app.post('/api/auth/login', async (req, res) => {
     }
 });
 
+// Admin Routes
+app.get('/api/admin/stats', verifyToken, verifyAdmin, async (req, res) => {
+    try {
+        const usersCount = await db.query("SELECT COUNT(*) FROM users WHERE role = 'client'");
+        const freelancersCount = await db.query("SELECT COUNT(*) FROM users WHERE role = 'freelancer'");
+        const totalUsers = await db.query("SELECT COUNT(*) FROM users");
+
+        res.json({
+            users: parseInt(totalUsers.rows[0].count),
+            freelancers: parseInt(freelancersCount.rows[0].count),
+            clients: parseInt(usersCount.rows[0].count),
+            gigs: 0
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+app.get('/api/admin/users', verifyToken, verifyAdmin, async (req, res) => {
+    try {
+        const result = await db.query('SELECT id, first_name, last_name, email, role, is_verified, is_banned, created_at FROM users ORDER BY created_at DESC');
+        res.json(result.rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+app.patch('/api/admin/users/:id', verifyToken, verifyAdmin, async (req, res) => {
+    const { id } = req.params;
+    const { is_verified, is_banned } = req.body;
+
+    const fields = [];
+    const values = [];
+    let query = 'UPDATE users SET ';
+
+    if (is_verified !== undefined) {
+        values.push(is_verified);
+        fields.push(`is_verified = $${values.length}`);
+    }
+
+    if (is_banned !== undefined) {
+        values.push(is_banned);
+        fields.push(`is_banned = $${values.length}`);
+    }
+
+    if (fields.length === 0) return res.status(400).json({ message: 'No fields to update' });
+
+    query += fields.join(', ') + ` WHERE id = $${values.length + 1} RETURNING *`;
+    values.push(id);
+
+    try {
+        const result = await db.query(query, values);
+        if (result.rows.length === 0) return res.status(404).json({ message: 'User not found' });
+
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
 // OAuth Routes
 
 // Google
@@ -135,7 +203,7 @@ app.get('/api/auth/google/callback',
         // Redirect to frontend with token
         // In production, use a more secure way (e.g., httpOnly cookie or separate exchange)
         // For this MVP, query param is acceptable but not ideal.
-        res.redirect(`${process.env.CLIENT_URL || 'http://localhost:3000'}/auth/callback?token=${token}`);
+        res.redirect(`${process.env.CLIENT_URL || 'http://localhost:3000'}/auth/callback?token=${token}&role=${user.role}`);
     }
 );
 
@@ -151,7 +219,7 @@ app.get('/api/auth/facebook/callback',
             expiresIn: '1h',
         });
 
-        res.redirect(`${process.env.CLIENT_URL || 'http://localhost:3000'}/auth/callback?token=${token}`);
+        res.redirect(`${process.env.CLIENT_URL || 'http://localhost:3000'}/auth/callback?token=${token}&role=${user.role}`);
     }
 );
 

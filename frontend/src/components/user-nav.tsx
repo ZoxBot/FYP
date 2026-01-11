@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   CreditCard,
@@ -23,8 +24,30 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 export function UserNav() {
-  // We'll use a mock user for now
-  const user = users.find(u => u.role === "freelancer");
+  const [user, setUser] = useState<{ name: string; email: string; avatar?: string; role: string } | null>(null);
+
+  useEffect(() => {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      try {
+        const userData = JSON.parse(userStr);
+        setUser({
+          name: `${userData.first_name} ${userData.last_name}`,
+          email: userData.email,
+          role: userData.role,
+          avatar: userData.avatar // Assuming backend might provide this later
+        });
+      } catch (e) {
+        console.error("Failed to parse user", e);
+      }
+    }
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    window.location.href = '/login';
+  };
 
   if (!user) return null;
 
@@ -76,12 +99,10 @@ export function UserNav() {
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem asChild>
-          <Link href="/">
-            <LogOut className="mr-2 h-4 w-4" />
-            <span>Log out</span>
-            <DropdownMenuShortcut>⇧⌘Q</DropdownMenuShortcut>
-          </Link>
+        <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
+          <LogOut className="mr-2 h-4 w-4" />
+          <span>Log out</span>
+          <DropdownMenuShortcut>⇧⌘Q</DropdownMenuShortcut>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

@@ -1,12 +1,13 @@
 {
-  "/(app)/admin/page": "app/(app)/admin/page.js",
+  "/(app)/client/page": "app/(app)/client/page.js",
   "/(app)/dashboard/page": "app/(app)/dashboard/page.js",
   "/(app)/messages/page": "app/(app)/messages/page.js",
   "/(app)/profile/page": "app/(app)/profile/page.js",
   "/(app)/settings/page": "app/(app)/settings/page.js",
-  "/(app)/tasks/[id]/page": "app/(app)/tasks/[id]/page.js",
+  "/(app)/tasks/new/page": "app/(app)/tasks/new/page.js",
   "/(app)/tasks/page": "app/(app)/tasks/page.js",
   "/favicon.ico/route": "app/favicon.ico/route.js",
   "/login/page": "app/login/page.js",
-  "/page": "app/page.js"
+  "/page": "app/page.js",
+  "/signup/page": "app/signup/page.js"
 }

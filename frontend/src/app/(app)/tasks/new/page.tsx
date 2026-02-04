@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -33,6 +33,34 @@ export default function NewTaskPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isVerified, setIsVerified] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const checkVerification = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        router.push('/login');
+        return;
+      }
+
+      try {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/verification/status`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setIsVerified(data.isVerified);
+        } else {
+          // Assume not verified if API call fails or returns non-200 (unless it's 401 which handles itself differently usually, but safetynet here)
+          setIsVerified(false);
+        }
+      } catch (e) {
+        console.error("Verification check failed", e);
+        setIsVerified(false); // Default to blocking if we can't verify
+      }
+    };
+    checkVerification();
+  }, [router]);
 
   const form = useForm<TaskFormValues>({
     resolver: zodResolver(taskSchema),
@@ -43,13 +71,16 @@ export default function NewTaskPage() {
     },
   });
 
+  // ... (generateTaskDescription logic) ...
+
   const handleGenerateDescription = async () => {
+    // ... same code ...
     const title = form.getValues("title");
     if (!title) {
       form.setError("title", { message: "Please enter a title first to generate a description." });
       return;
     }
-    
+
     setIsGenerating(true);
     try {
       const result = await generateTaskDescription({ prompt: title });
@@ -73,6 +104,7 @@ export default function NewTaskPage() {
   };
 
   const onSubmit = (data: TaskFormValues) => {
+    // ... same code ...
     console.log(data);
     toast({
       title: "Task Posted!",
@@ -80,6 +112,35 @@ export default function NewTaskPage() {
     });
     router.push("/tasks");
   };
+
+  if (isVerified === null) {
+    return <div className="p-8">Checking eligibility...</div>;
+  }
+
+  if (isVerified === false) {
+    return (
+      <div className="flex flex-col items-center justify-center p-12 text-center h-[50vh]">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle className="text-red-600">Verification Required</CardTitle>
+            <CardDescription>
+              To maintain quality and trust, only verified users can post new tasks.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="mb-4 text-sm text-muted-foreground">
+              Please verify your identity by uploading a valid document (Citizenship/Passport) in your profile settings.
+            </p>
+            <Button onClick={() => router.push('/profile')}>
+              Go to Profile Verification
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Render Form if Verified ...
 
   return (
     <>

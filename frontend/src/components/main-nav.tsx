@@ -18,6 +18,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { usePermission } from "@/hooks/usePermission";
 
 const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
@@ -30,19 +31,15 @@ const navItems = [
 
 export function MainNav({ isCollapsed }: { isCollapsed: boolean }) {
   const pathname = usePathname();
+  const { can, loading } = usePermission();
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    const userStr = localStorage.getItem('user');
-    if (userStr) {
-      try {
-        const user = JSON.parse(userStr);
-        setIsAdmin(user.role === 'admin');
-      } catch (e) {
-        console.error("Failed to parse user from localStorage", e);
-      }
+    // Update admin status based on permissions rather than just local storage role
+    if (!loading) {
+      setIsAdmin(can('user.view'));
     }
-  }, []);
+  }, [loading, can]);
 
   const filteredNavItems = navItems.filter(item => {
     if (item.href === '/admin') return isAdmin;

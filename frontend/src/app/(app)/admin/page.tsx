@@ -63,12 +63,24 @@ type PermissionData = {
   parent_id: number | null;
 };
 
+type VerificationRequest = {
+  id: number;
+  user_id: number;
+  document_path: string;
+  status: 'pending' | 'approved' | 'rejected';
+  created_at: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+};
+
 export default function AdminPage() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [users, setUsers] = useState<UserData[]>([]);
   const [jobs, setJobs] = useState<JobData[]>([]);
   const [roles, setRoles] = useState<RoleData[]>([]);
   const [allPermissions, setAllPermissions] = useState<PermissionData[]>([]);
+  const [verificationRequests, setVerificationRequests] = useState<VerificationRequest[]>([]);
 
   // Role Editing State
   const [selectedRole, setSelectedRole] = useState<RoleData | null>(null);
@@ -89,7 +101,7 @@ export default function AdminPage() {
 
   const [loading, setLoading] = useState(true);
   const router = useRouter();
-  const { can } = usePermission();
+  const { can, loading: permLoading } = usePermission();
 
   const fetchStats = async () => {
     const token = localStorage.getItem('token');
@@ -107,6 +119,30 @@ export default function AdminPage() {
       console.error("Failed to fetch stats", error);
     }
   };
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+
+    if (!token) {
+      router.push('/login');
+      return;
+    }
+
+    if (!permLoading && !can('user.view')) {
+      console.log("Unauthorized access to admin panel. Redirecting...");
+      router.push('/dashboard');
+      return;
+    }
+
+    if (!permLoading && can('user.view')) {
+      Promise.all([fetchStats(), fetchUsers(), fetchJobs(), fetchRoles(), fetchPermissions(), fetchVerificationRequests()]).finally(() => setLoading(false));
+    }
+  }, [router, permLoading, can]);
+
+  if (loading || permLoading) {
+    return <div className="p-8 flex items-center justify-center h-full text-muted-foreground">Checking Authorization...</div>;
+  }
+
 
   const fetchUsers = async () => {
     const token = localStorage.getItem('token');
@@ -139,6 +175,40 @@ export default function AdminPage() {
       }
     } catch (error) {
       console.error("Failed to fetch jobs", error);
+    }
+  };
+
+  const fetchVerificationRequests = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/verification/pending`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) setVerificationRequests(await res.json());
+    } catch (e) {
+      console.error("Failed to fetch verifications", e);
+    }
+  };
+
+  const handleVerificationAction = async (id: number, action: 'approve' | 'reject') => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/verification/${id}/review`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ action })
+      });
+      if (res.ok) {
+        fetchVerificationRequests();
+        fetchUsers(); // User status changed
+      }
+    } catch (e) {
+      console.error("Failed to action verification", e);
     }
   };
 
@@ -427,9 +497,66 @@ export default function AdminPage() {
         <TabsList>
           <TabsTrigger value="jobs">Job Moderation</TabsTrigger>
           <TabsTrigger value="users">User Management</TabsTrigger>
+          <TabsTrigger value="verifications">Verifications <Badge variant="secondary" className="ml-2">{verificationRequests.length}</Badge></TabsTrigger>
           {can('rbac.roles.manage') && <TabsTrigger value="roles">Role Management</TabsTrigger>}
         </TabsList>
 
+
+        <TabsContent value="verifications" className="space-y-4">
+          <Card>
+            <CardHeader><CardTitle>Pending Identity Verifications</CardTitle></CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>User</TableHead>
+                    <TableHead>Submitted</TableHead>
+                    <TableHead>Document</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {verificationRequests.map(req => (
+                    <TableRow key={req.id}>
+                      <TableCell>
+                        <div className="font-medium">{req.first_name} {req.last_name}</div>
+                        <div className="text-sm text-muted-foreground">{req.email}</div>
+                      </TableCell>
+                      <TableCell>{new Date(req.created_at).toLocaleDateString()}</TableCell>
+                      <TableCell>
+                        <a
+                          href={`http://localhost:5000/uploads/${req.document_path}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 underline flex items-center"
+                        >
+                          <FileText className="h-4 w-4 mr-1" /> View Document
+                        </a>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => handleVerificationAction(req.id, 'approve')}>
+                            Verify User
+                          </Button>
+                          <Button size="sm" variant="destructive" onClick={() => handleVerificationAction(req.id, 'reject')}>
+                            Reject
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {verificationRequests.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center h-24 text-muted-foreground">
+                        No pending verifications.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         <TabsContent value="users" className="space-y-4">
           <Card>

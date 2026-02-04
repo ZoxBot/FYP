@@ -115,6 +115,7 @@ app.post('/api/auth/login', async (req, res) => {
                 last_name: user.last_name,
                 email: user.email,
                 role: user.role,
+                is_verified: user.is_verified
             },
         });
     } catch (err) {
@@ -123,9 +124,21 @@ app.post('/api/auth/login', async (req, res) => {
     }
 });
 
+// User Routes
+const userRoutes = require('./routes/userRoutes');
+app.use('/api/users', userRoutes);
+
 // Admin Routes (Modularized)
 const adminRoutes = require('./routes/adminRoutes');
 app.use('/api/admin', adminRoutes);
+
+// Verification Routes
+const verificationRoutes = require('./routes/verificationRoutes');
+app.use('/api/verification', verificationRoutes);
+
+// Serve Uploaded Files (Verification Docs)
+// Security Note: In production, consider serving these via signed URLs or checking auth before serving
+app.use('/uploads', express.static('uploads'));
 
 /* 
 // Legacy Inline Admin Routes - Moved to routes/adminRoutes.js

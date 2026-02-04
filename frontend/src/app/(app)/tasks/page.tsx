@@ -1,13 +1,18 @@
+"use client";
+
 import Link from "next/link";
-import { PlusCircle, ListFilter } from "lucide-react";
+import { PlusCircle, ListFilter, ShieldAlert, CheckCircle, Ban } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/page-header";
 import { tasks, getUserById } from "@/lib/mock-data";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuCheckboxItem } from "@/components/ui/dropdown-menu";
+import { usePermission } from "@/hooks/usePermission";
 
 export default function TasksPage() {
+  const { can } = usePermission();
+
   return (
     <>
       <PageHeader
@@ -48,17 +53,34 @@ export default function TasksPage() {
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {tasks.map((task) => {
           const client = getUserById(task.clientId);
+
+          // Permission Checks
+          const canApprove = can('job.approve');
+          const canSuspend = can('job.suspend');
+
           return (
-            <Card key={task.id} className="flex flex-col">
+            <Card key={task.id} className="flex flex-col relative">
+              {/* Admin Indicator */}
+              {(canApprove || canSuspend) && (
+                <div className="absolute top-2 right-2">
+                  <Badge variant="destructive" className="text-[10px] px-1 py-0 h-5">Admin View</Badge>
+                </div>
+              )}
+
               <CardHeader>
-                <div className="flex justify-between items-start">
-                  <CardTitle className="font-headline text-lg hover:text-primary">
+                <div className="flex justify-between items-start pr-12">
+                  <CardTitle className="font-headline text-lg hover:text-primary line-clamp-1">
                     <Link href={`/tasks/${task.id}`}>{task.title}</Link>
                   </CardTitle>
-                  <Badge variant={task.status === 'Open' ? 'secondary' : 'outline'}>{task.status}</Badge>
                 </div>
-                <CardDescription>
-                  by {client?.name} &middot; Deadline: {new Date(task.deadline).toLocaleDateString()}
+                <div className="flex items-center gap-2 mt-1">
+                  <Badge variant={task.status === 'Open' ? 'secondary' : 'outline'}>{task.status}</Badge>
+                  <span className="text-xs text-muted-foreground">
+                    by {client?.name}
+                  </span>
+                </div>
+                <CardDescription className="text-xs mt-1">
+                  Deadline: {new Date(task.deadline).toLocaleDateString()}
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex-grow">
@@ -69,15 +91,32 @@ export default function TasksPage() {
                   NPR {task.budget.toLocaleString()}
                 </div>
               </CardContent>
-              <CardFooter className="flex justify-between items-center">
-                 <div className="flex gap-2 flex-wrap">
-                    {task.tags.map(tag => <Badge key={tag} variant="outline">{tag}</Badge>)}
-                 </div>
-                 <Button asChild size="sm">
+              <CardFooter className="flex flex-col gap-3 items-start">
+                <div className="flex gap-2 flex-wrap w-full">
+                  {task.tags.map(tag => <Badge key={tag} variant="outline" className="text-xs font-normal">{tag}</Badge>)}
+                </div>
+
+                <div className="flex justify-between w-full items-center mt-2">
+                  <Button asChild size="sm">
                     <Link href={`/tasks/${task.id}`}>
-                        {task.status === 'Open' ? 'View & Bid' : 'View Details'}
+                      {task.status === 'Open' ? 'View & Bid' : 'View Details'}
                     </Link>
-                 </Button>
+                  </Button>
+
+                  {/* Admin Actions */}
+                  <div className="flex gap-1">
+                    {canApprove && task.status === 'Open' && (
+                      <Button size="icon" variant="ghost" className="h-8 w-8 text-green-600" title="Approve Job">
+                        <CheckCircle className="h-4 w-4" />
+                      </Button>
+                    )}
+                    {canSuspend && (
+                      <Button size="icon" variant="ghost" className="h-8 w-8 text-red-600" title="Suspend/Delete Job">
+                        <Ban className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
               </CardFooter>
             </Card>
           );

@@ -33,8 +33,13 @@ function CallbackContent() {
                 // I'll stick to provided patterns or just redirect.
                 // But we probably need to persist it.
                 localStorage.setItem('token', token);
-                // Redirect to dashboard
-                router.push('/dashboard');
+                const role = searchParams.get('role');
+                // Redirect based on role
+                if (role === 'admin') {
+                    router.push('/admin');
+                } else {
+                    router.push('/dashboard');
+                }
             } else {
                 // If no token, something went wrong, go back to login
                 router.push('/login?error=oauth_failed');
@@ -53,7 +58,7 @@ function CallbackContent() {
                     className: "h-8 w-8 animate-spin text-primary"
                 }, void 0, false, {
                     fileName: "[project]/src/app/auth/callback/page.tsx",
-                    lineNumber: 34,
+                    lineNumber: 39,
                     columnNumber: 17
                 }, this),
                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -61,18 +66,18 @@ function CallbackContent() {
                     children: "Logging you in..."
                 }, void 0, false, {
                     fileName: "[project]/src/app/auth/callback/page.tsx",
-                    lineNumber: 35,
+                    lineNumber: 40,
                     columnNumber: 17
                 }, this)
             ]
         }, void 0, true, {
             fileName: "[project]/src/app/auth/callback/page.tsx",
-            lineNumber: 33,
+            lineNumber: 38,
             columnNumber: 13
         }, this)
     }, void 0, false, {
         fileName: "[project]/src/app/auth/callback/page.tsx",
-        lineNumber: 32,
+        lineNumber: 37,
         columnNumber: 9
     }, this);
 }
@@ -89,17 +94,17 @@ function AuthCallbackPage() {
             children: "Loading..."
         }, void 0, false, {
             fileName: "[project]/src/app/auth/callback/page.tsx",
-            lineNumber: 43,
+            lineNumber: 48,
             columnNumber: 29
         }, void 0),
         children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(CallbackContent, {}, void 0, false, {
             fileName: "[project]/src/app/auth/callback/page.tsx",
-            lineNumber: 44,
+            lineNumber: 49,
             columnNumber: 13
         }, this)
     }, void 0, false, {
         fileName: "[project]/src/app/auth/callback/page.tsx",
-        lineNumber: 43,
+        lineNumber: 48,
         columnNumber: 9
     }, this);
 }

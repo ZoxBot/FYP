@@ -53,7 +53,11 @@ export default function SignupPage() {
       }
 
       console.log("User created:", data.user);
-      router.push("/dashboard");
+      if (role === 'client') {
+        router.push("/client");
+      } else {
+        router.push("/dashboard");
+      }
     } catch (err: any) {
       setError(err.message);
     } finally {

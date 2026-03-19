@@ -15,6 +15,7 @@ const AppError = require('./utils/AppError');
 const validate = require('./middleware/validate');
 const { signupSchema, loginSchema, otpSchema, forgotPasswordSchema, resetPasswordSchema } = require('./validations/authValidations');
 const globalErrorHandler = require('./middleware/errorMiddleware');
+const { sendOTP, sendPasswordResetEmail } = require('./utils/emailService');
 
 const http = require('http');
 const { Server } = require('socket.io');
@@ -243,8 +244,31 @@ app.post('/api/auth/verify-otp', validate(otpSchema), asyncHandler(async (req, r
         'UPDATE users SET is_email_verified = TRUE, verification_otp = NULL, otp_expires_at = NULL WHERE id = $1',
         [user.id]
     );
- 
-    res.json({ message: 'Email verified successfully' });
+
+    const token = jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET, {
+        expiresIn: '1h',
+    });
+
+    res.cookie('token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 3600000 // 1 hour
+    });
+
+    res.json({
+        message: 'Email verified successfully',
+        token,
+        user: {
+            id: user.id,
+            first_name: user.first_name,
+            last_name: user.last_name,
+            email: user.email,
+            role: user.role,
+            is_verified: user.is_verified,
+            is_email_verified: true
+        }
+    });
 }));
 
 // Resend OTP

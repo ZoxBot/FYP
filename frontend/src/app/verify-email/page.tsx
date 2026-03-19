@@ -51,9 +51,26 @@ function VerifyEmailForm() {
       }
 
       setSuccess(true);
-      setTimeout(() => {
-        router.push("/login"); // After verification, go to login
-      }, 3000);
+      
+      // Save user and redirect to dashboard (Auto Login)
+      if (data.user) {
+        localStorage.setItem('user', JSON.stringify(data.user));
+        localStorage.setItem('userRole', data.user.role || '');
+        
+        setTimeout(() => {
+          if (data.user.role === 'admin') {
+            router.push("/admin");
+          } else if (data.user.role === 'client') {
+            router.push("/client");
+          } else {
+            router.push("/dashboard");
+          }
+        }, 2000);
+      } else {
+        setTimeout(() => {
+          router.push("/login");
+        }, 3000);
+      }
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -136,13 +153,6 @@ function VerifyEmailForm() {
               {resending ? "Sending..." : "Resend Code"}
             </button>
           </div>
-          
-          {process.env.NODE_ENV === 'development' && (
-            <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-md text-xs text-blue-700 dark:text-blue-400 border border-blue-100 dark:border-blue-800">
-              <p className="font-semibold mb-1">Development Note:</p>
-              <p>Emails are currently sent to <strong>Mailtrap</strong>. Check your Mailtrap dashboard for the 6-digit code.</p>
-            </div>
-          )}
         </form>
       </CardContent>
     </Card>

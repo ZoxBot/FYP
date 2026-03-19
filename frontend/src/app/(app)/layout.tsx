@@ -3,7 +3,6 @@
 import * as React from "react";
 import Link from "next/link";
 import {
-  Bell,
   Home,
   LineChart,
   Package,
@@ -16,6 +15,7 @@ import {
 import { MainNav } from "@/components/main-nav";
 import Logo from "@/components/logo";
 import { UserNav } from "@/components/user-nav";
+import { NotificationBell } from "@/components/NotificationBell";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import {
@@ -42,16 +42,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="grid min-h-screen w-full md:grid-cols-[auto_1fr] lg:grid-cols-[auto_1fr]">
       <div
-        className={`hidden border-r bg-muted/40 md:block transition-all duration-300 ${
-          isCollapsed ? "w-16" : "w-64"
-        }`}
+        className={`hidden border-r bg-muted/40 md:block sticky top-0 h-screen transition-all duration-300 ${isCollapsed ? "w-16" : "w-64"
+          }`}
       >
         <div className="flex h-full max-h-screen flex-col gap-2">
           <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
-            <Link href="/" className="flex items-center gap-2 font-semibold">
-              <Logo />
-              {!isCollapsed && <span className="sr-only">Kaamko Kura</span>}
-            </Link>
+            <Logo hideText={isCollapsed} />
           </div>
           <div className="flex-1">
             <MainNav isCollapsed={isCollapsed} />
@@ -59,7 +55,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       </div>
       <div className="flex flex-col">
-        <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6">
+        <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background/80 backdrop-blur px-4 lg:h-[60px] lg:px-6">
           <Sheet>
             <SheetTrigger asChild>
               <Button
@@ -101,6 +97,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </form>
           </div>
           <ThemeToggle />
+          <NotificationBell />
           <UserNav />
         </header>
         <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 bg-background">

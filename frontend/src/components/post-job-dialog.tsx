@@ -15,6 +15,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Plus } from "lucide-react";
+import dynamic from 'next/dynamic';
+ 
+const ReactQuill = dynamic(() => import('react-quill'), { 
+  ssr: false,
+  loading: () => <div className="h-[150px] w-full bg-muted animate-pulse rounded-md" />
+});
+import { usePermission } from "@/hooks/usePermission";
+import { getErrorMessage } from "@/lib/utils";
 
 interface PostJobDialogProps {
     onJobPosted: () => void;
@@ -23,6 +31,7 @@ interface PostJobDialogProps {
 export function PostJobDialog({ onJobPosted }: PostJobDialogProps) {
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
+    const { can } = usePermission();
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
     const [budget, setBudget] = useState("");
@@ -49,7 +58,7 @@ export function PostJobDialog({ onJobPosted }: PostJobDialogProps) {
                 })
             });
 
-            if (!res.ok) throw new Error("Failed to post job");
+            if (!res.ok) throw new Error(getErrorMessage(res.status));
 
             setOpen(false);
             setTitle("");
@@ -57,9 +66,9 @@ export function PostJobDialog({ onJobPosted }: PostJobDialogProps) {
             setBudget("");
             setDeadline("");
             onJobPosted();
-        } catch (error) {
+        } catch (error: any) {
             console.error(error);
-            alert("Failed to post job. Please try again.");
+            alert(`Failed to post job: ${error.message}`);
         } finally {
             setLoading(false);
         }
@@ -93,13 +102,14 @@ export function PostJobDialog({ onJobPosted }: PostJobDialogProps) {
                         </div>
                         <div className="grid gap-2">
                             <Label htmlFor="description">Description</Label>
-                            <Textarea
-                                id="description"
-                                placeholder="Details about the project..."
-                                value={description}
-                                onChange={(e) => setDescription(e.target.value)}
-                                required
-                            />
+                            <div className="min-h-[200px] bg-white text-black rounded-md overflow-hidden">
+                                <ReactQuill
+                                    theme="snow"
+                                    value={description}
+                                    onChange={setDescription}
+                                    placeholder="Detailed requirements, skills needed, etc..."
+                                />
+                            </div>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="grid gap-2">
@@ -125,7 +135,7 @@ export function PostJobDialog({ onJobPosted }: PostJobDialogProps) {
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button type="submit" disabled={loading}>
+                        <Button type="submit" disabled={loading || !can('job.post')}>
                             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             Post Project
                         </Button>

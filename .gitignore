@@ -17,3 +17,5 @@ serviceAccount*.json
 # editor / OS
 .vscode/
 .DS_Store
+
+.next

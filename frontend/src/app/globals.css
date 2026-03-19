@@ -1,3 +1,5 @@
+@import 'react-quill/dist/quill.snow.css';
+ 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -81,5 +83,52 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+ 
+@layer components {
+  .mesh-gradient {
+    background-image: 
+      radial-gradient(at 0% 0%, hsla(33,100%,50%,0.1) 0, transparent 50%), 
+      radial-gradient(at 50% 0%, hsla(54,78%,74%,0.1) 0, transparent 50%), 
+      radial-gradient(at 100% 0%, hsla(33,100%,50%,0.1) 0, transparent 50%);
+  }
+ 
+  .glass-card {
+    @apply bg-background/40 backdrop-blur-md border border-white/10 shadow-xl transition-all duration-300;
+  }
+  
+  .glass-premium {
+    @apply bg-white/5 backdrop-blur-xl border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] transition-all duration-500 hover:bg-white/10;
+  }
+
+  .glass-dark {
+    @apply bg-black/40 backdrop-blur-lg border border-white/5 shadow-2xl;
+  }
+
+  .text-glow {
+    text-shadow: 0 0 10px hsl(var(--primary) / 0.5), 0 0 20px hsl(var(--primary) / 0.3);
+  }
+
+  .border-glow {
+    box-shadow: 0 0 15px hsl(var(--primary) / 0.2), inset 0 0 5px hsl(var(--primary) / 0.1);
+  }
+
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary via-orange-400 to-amber-500 bg-[length:200%_auto] animate-gradient-slow;
+  }
+
+  /* Custom Scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-muted-foreground/20 rounded-full hover:bg-muted-foreground/40 transition-colors;
   }
 }

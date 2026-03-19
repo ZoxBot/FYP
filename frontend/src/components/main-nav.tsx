@@ -10,6 +10,7 @@ import {
   Settings,
   Shield,
   MessageSquare,
+  LifeBuoy,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -26,29 +27,15 @@ const navItems = [
   { href: "/messages", icon: MessageSquare, label: "Messages" },
   { href: "/profile", icon: User, label: "Profile" },
   { href: "/settings", icon: Settings, label: "Settings" },
-  { href: "/admin", icon: Shield, label: "Admin" },
+  { href: "/support/tickets", icon: LifeBuoy, label: "Tickets" },
 ];
-
 export function MainNav({ isCollapsed }: { isCollapsed: boolean }) {
   const pathname = usePathname();
-  const { can, loading } = usePermission();
-  const [isAdmin, setIsAdmin] = useState(false);
 
-  useEffect(() => {
-    // Update admin status based on permissions rather than just local storage role
-    if (!loading) {
-      setIsAdmin(can('user.view'));
-    }
-  }, [loading, can]);
-
-  const filteredNavItems = navItems.filter(item => {
-    if (item.href === '/admin') return isAdmin;
-    return true;
-  });
   return (
     <TooltipProvider>
       <nav className="grid gap-2 px-2">
-        {filteredNavItems.map((item) => {
+        {navItems.map((item) => {
           const isActive = pathname.startsWith(item.href);
           return isCollapsed ? (
             <Tooltip key={item.href} delayDuration={0}>

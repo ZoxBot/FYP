@@ -14,12 +14,14 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { PageHeader } from "@/components/page-header";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { generateTaskDescription } from "@/ai/flows/generate-task-description";
 
 const taskSchema = z.object({
   title: z.string().min(5, "Title must be at least 5 characters long."),
   description: z.string().min(20, "Description must be at least 20 characters long."),
+  category: z.string().min(1, "Please select a category."),
   budget: z.coerce.number().min(100, "Budget must be at least NPR 100."),
   deadline: z.string().refine((val) => !isNaN(Date.parse(val)), {
     message: "Invalid date format.",
@@ -67,6 +69,7 @@ export default function NewTaskPage() {
     defaultValues: {
       title: "",
       description: "",
+      category: "",
       tags: "",
     },
   });
@@ -103,14 +106,46 @@ export default function NewTaskPage() {
     }
   };
 
-  const onSubmit = (data: TaskFormValues) => {
-    // ... same code ...
-    console.log(data);
-    toast({
-      title: "Task Posted!",
-      description: "Your new task has been successfully posted to the marketplace.",
-    });
-    router.push("/tasks");
+  const onSubmit = async (data: TaskFormValues) => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      router.push('/login');
+      return;
+    }
+
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/jobs`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          title: data.title,
+          description: data.description,
+          category: data.category,
+          budget: data.budget,
+          deadline: data.deadline || null,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || 'Failed to post task');
+      }
+
+      toast({
+        title: "Task Posted!",
+        description: "Your new task is now live on the marketplace.",
+      });
+      router.push("/tasks");
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Failed to Post Task",
+        description: error.message || "Something went wrong. Please try again.",
+      });
+    }
   };
 
   if (isVerified === null) {
@@ -167,6 +202,33 @@ export default function NewTaskPage() {
                     <FormControl>
                       <Input placeholder="e.g., Logo Design for a new Cafe" {...field} />
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="category"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Category</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a category" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Web Development">Web Development</SelectItem>
+                        <SelectItem value="Graphic Design">Graphic Design</SelectItem>
+                        <SelectItem value="Digital Marketing">Digital Marketing</SelectItem>
+                        <SelectItem value="Writing & Translation">Writing & Translation</SelectItem>
+                        <SelectItem value="Video & Animation">Video & Animation</SelectItem>
+                        <SelectItem value="Data Entry">Data Entry</SelectItem>
+                        <SelectItem value="Other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}

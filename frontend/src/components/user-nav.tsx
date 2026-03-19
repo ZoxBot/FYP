@@ -8,8 +8,8 @@ import {
   PlusCircle,
   Settings,
   User as UserIcon,
+  ShieldAlert
 } from "lucide-react";
-import { users } from "@/lib/mock-data";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,24 +27,40 @@ export function UserNav() {
   const [user, setUser] = useState<{ name: string; email: string; avatar?: string; role: string } | null>(null);
 
   useEffect(() => {
-    const userStr = localStorage.getItem('user');
-    if (userStr) {
-      try {
-        const userData = JSON.parse(userStr);
-        setUser({
-          name: `${userData.first_name} ${userData.last_name}`,
-          email: userData.email,
-          role: userData.role,
-          avatar: userData.avatar // Assuming backend might provide this later
-        });
-      } catch (e) {
-        console.error("Failed to parse user", e);
+    const loadUser = () => {
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        try {
+          const userData = JSON.parse(userStr);
+          const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+          setUser({
+            name: `${userData.first_name} ${userData.last_name}`,
+            email: userData.email,
+            role: userData.role,
+            avatar: userData.avatar_url
+              ? (userData.avatar_url.startsWith('http') ? userData.avatar_url : `${API_URL}/uploads/${userData.avatar_url}`)
+              : userData.avatar
+          });
+        } catch (e) {
+          console.error("Failed to parse user", e);
+        }
       }
-    }
+    };
+
+    loadUser();
+
+    // Listen for profile updates
+    window.addEventListener('userUpdated', loadUser);
+    return () => window.removeEventListener('userUpdated', loadUser);
   }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
+  const handleLogout = async () => {
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      await fetch(`${API_URL}/api/auth/logout`, { method: 'POST' });
+    } catch (e) {
+      console.error('Logout failed', e);
+    }
     localStorage.removeItem('user');
     window.location.href = '/login';
   };
@@ -83,10 +99,12 @@ export function UserNav() {
               <DropdownMenuShortcut>⇧⌘P</DropdownMenuShortcut>
             </Link>
           </DropdownMenuItem>
-          <DropdownMenuItem>
-            <CreditCard className="mr-2 h-4 w-4" />
-            <span>Billing</span>
-            <DropdownMenuShortcut>⌘B</DropdownMenuShortcut>
+          <DropdownMenuItem asChild>
+            <Link href="/billing">
+              <CreditCard className="mr-2 h-4 w-4" />
+              <span>Billing</span>
+              <DropdownMenuShortcut>⌘B</DropdownMenuShortcut>
+            </Link>
           </DropdownMenuItem>
           <DropdownMenuItem>
             <Settings className="mr-2 h-4 w-4" />
@@ -97,6 +115,17 @@ export function UserNav() {
             <PlusCircle className="mr-2 h-4 w-4" />
             <span>New Task</span>
           </DropdownMenuItem>
+          {user.role === 'admin' && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link href="/admin/dashboard" className="text-blue-500 font-medium">
+                  <ShieldAlert className="mr-2 h-4 w-4" />
+                  <span>Admin Control Panel</span>
+                </Link>
+              </DropdownMenuItem>
+            </>
+          )}
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">

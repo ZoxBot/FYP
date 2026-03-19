@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import Logo from "@/components/logo";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { Loader2, Eye, EyeOff } from "lucide-react";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -16,6 +16,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -36,9 +37,9 @@ export default function LoginPage() {
         throw new Error(data.message || 'Login failed');
       }
 
-      // Save token and user
-      localStorage.setItem('token', data.token);
+      // Save user
       localStorage.setItem('user', JSON.stringify(data.user));
+      localStorage.setItem('userRole', data.user.role || '');
 
       // Role-based redirection
       if (data.user && data.user.role === 'admin') {
@@ -86,20 +87,41 @@ export default function LoginPage() {
               <div className="grid gap-2">
                 <div className="flex items-center">
                   <Label htmlFor="password">Password</Label>
-                  <Link href="#" className="ml-auto inline-block text-sm underline">
+                  <Link href="/forgot-password" className="ml-auto inline-block text-sm underline">
                     Forgot your password?
                   </Link>
                 </div>
-                <Input
-                  id="password"
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    className="absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground hover:text-foreground transition-colors"
+                    tabIndex={-1}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
               </div>
 
-              {error && <p className="text-sm text-red-500">{error}</p>}
+              {error && (
+                <div className="bg-red-50 dark:bg-red-900/20 p-3 rounded-md text-sm text-red-600 dark:text-red-500 flex flex-col gap-2">
+                  <p>{error}</p>
+                  {error.includes("verify your email") && (
+                    <Link href={`/verify-email?email=${encodeURIComponent(email)}`} className="font-semibold underline flex items-center gap-1">
+                      Verify my email →
+                    </Link>
+                  )}
+                </div>
+              )}
 
               <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground" disabled={loading || googleLoading}>
                 {loading ? <Loader2 className="animate-spin" /> : "Log In"}
@@ -120,10 +142,6 @@ export default function LoginPage() {
             <Button variant="outline" className="w-full" onClick={() => window.location.href = 'http://localhost:5000/api/auth/google'} disabled={loading || googleLoading}>
               <svg className="mr-2 h-4 w-4" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512"><path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C258.5 52.6 94.3 116.6 94.3 256c0 86.5 69.1 156.6 153.7 156.6 98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 24.9 3.9 41.4z"></path></svg>
               Login with Google
-            </Button>
-            <Button variant="outline" className="w-full" onClick={() => window.location.href = 'http://localhost:5000/api/auth/facebook'} disabled={loading || googleLoading}>
-              <svg className="mr-2 h-4 w-4" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="facebook" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M504 256C504 119 393 8 256 8S8 119 8 256c0 125.1 87.3 229 204.3 247.2v-175h-61.5v-72.2h61.5v-53.6c0-60.8 35.8-93.5 89.9-93.5 25.8 0 52.6 4.3 52.6 4.3v57.8h-29.6c-30.8 0-40.4 19.1-40.4 38.7v46.3h69.2l-11 72.2h-58.2v175c117-18.2 204.3-122.1 204.3-247.2z"></path></svg>
-              Login with Facebook
             </Button>
           </div>
           <div className="mt-4 text-center text-sm">

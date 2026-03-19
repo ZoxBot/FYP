@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Briefcase, CreditCard } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { PostJobDialog } from "@/components/post-job-dialog";
+import { usePermission } from "@/hooks/usePermission";
 
 type JobData = {
     id: number;
@@ -21,6 +22,7 @@ type JobData = {
 export default function ClientDashboard() {
     const [jobs, setJobs] = useState<JobData[]>([]);
     const [loading, setLoading] = useState(true);
+    const { can } = usePermission();
     const router = useRouter();
 
     const fetchJobs = async () => {
@@ -66,7 +68,7 @@ export default function ClientDashboard() {
                     title="Client Dashboard"
                     description="Manage your projects and hire freelancers."
                 />
-                <PostJobDialog onJobPosted={fetchJobs} />
+                {can('job.post') && <PostJobDialog onJobPosted={fetchJobs} />}
             </div>
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mb-8">
@@ -112,7 +114,11 @@ export default function ClientDashboard() {
                         </TableHeader>
                         <TableBody>
                             {jobs.map((job) => (
-                                <TableRow key={job.id}>
+                                <TableRow
+                                    key={job.id}
+                                    className="cursor-pointer hover:bg-muted/50"
+                                    onClick={() => router.push(`/tasks/${job.id}`)}
+                                >
                                     <TableCell>
                                         <div className="font-medium">{job.title}</div>
                                         <div className="text-sm text-muted-foreground truncate max-w-xs">{job.description}</div>
@@ -121,13 +127,18 @@ export default function ClientDashboard() {
                                     <TableCell>
                                         <Badge
                                             variant={
-                                                job.status === 'active' ? 'default' :
+                                                job.status === 'active' || job.status === 'open' ? 'default' :
                                                     job.status === 'completed' ? 'secondary' :
                                                         job.status === 'rejected' ? 'destructive' : 'outline'
                                             }
-                                            className={job.status === 'active' ? 'bg-green-600' : ''}
+                                            className={
+                                                job.status === 'active' || job.status === 'open' ? 'bg-blue-600' :
+                                                    job.status === 'in_progress' ? 'bg-green-600 text-white border-none' :
+                                                        job.status === 'pending_payment' ? 'bg-orange-500 text-white border-none' :
+                                                            job.status === 'awaiting_confirmation' ? 'bg-yellow-500 text-white border-none' : ''
+                                            }
                                         >
-                                            {job.status}
+                                            {job.status.replace('_', ' ')}
                                         </Badge>
                                     </TableCell>
                                     <TableCell className="text-muted-foreground">

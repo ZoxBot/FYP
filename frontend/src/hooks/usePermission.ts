@@ -20,7 +20,8 @@ export function usePermission() {
                 // In a real app, you might cache this in Context or Redux
                 // to avoid fetching on every hook usage.
                 // For now, simple fetch.
-                const res = await axios.get('http://localhost:5000/api/admin/me/permissions', {
+                const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+                const res = await axios.get(`${apiUrl}/api/users/me/permissions`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
 

@@ -41,8 +41,8 @@ const findOrCreateUser = async (profile, provider, done) => {
             const providerIdField = provider === 'google' ? 'google_id' : 'facebook_id';
 
             if (!existingUser[providerIdField]) {
-                // Link the account!
-                const updateQuery = `UPDATE users SET ${providerIdField} = $1 WHERE id = $2 RETURNING *`;
+                // Link the account and ensure it's marked as email verified (since OAuth email is trusted)
+                const updateQuery = `UPDATE users SET ${providerIdField} = $1, is_email_verified = TRUE WHERE id = $2 RETURNING *`;
                 const updatedUserRes = await db.query(updateQuery, [id, existingUser.id]);
                 return done(null, updatedUserRes.rows[0]);
             } else {
@@ -51,11 +51,10 @@ const findOrCreateUser = async (profile, provider, done) => {
             }
         } else {
             // 3. Create new user
-            // Note: We need a role. Defaulting to 'freelancer' as safe default or we can handle it differently.
-            // Ideally, we might redirect to a "finish signup" page, but for now we default.
+            // Note: We need a role. Defaulting to 'freelancer' as safe default.
             const newUserQuery = `
-        INSERT INTO users (first_name, last_name, email, role, ${provider === 'google' ? 'google_id' : 'facebook_id'})
-        VALUES ($1, $2, $3, 'freelancer', $4)
+        INSERT INTO users (first_name, last_name, email, role, is_email_verified, ${provider === 'google' ? 'google_id' : 'facebook_id'})
+        VALUES ($1, $2, $3, 'freelancer', TRUE, $4)
         RETURNING *
       `;
             const newUserRes = await db.query(newUserQuery, [firstName, lastName, email, id]);

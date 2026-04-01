@@ -7,31 +7,50 @@ const { logAdminAction } = require('../utils/auditLogger');
 // 1. Get All Tickets (Admin Overview)
 router.get('/', checkPermission('ticket.manage'), async (req, res) => {
     try {
-        const { status, priority } = req.query;
-        let query = `
+        const { status, priority, page = 1, limit = 20 } = req.query;
+        const offset = (page - 1) * limit;
+
+        let whereClause = 't.is_archived = false';
+        const params = [];
+        let pIndex = 1;
+
+        if (status) {
+            whereClause += ` AND t.status = $${pIndex++}`;
+            params.push(status);
+        }
+        if (priority) {
+            whereClause += ` AND t.priority = $${pIndex++}`;
+            params.push(priority);
+        }
+
+        const countQuery = `
+            SELECT COUNT(*) 
+            FROM tickets t
+            WHERE ${whereClause}
+        `;
+        const countRes = await db.query(countQuery, params);
+        const total = parseInt(countRes.rows[0].count);
+
+        const dataQuery = `
             SELECT t.*, u.first_name, u.last_name, u.email,
                    c.first_name as claim_first_name, c.last_name as claim_last_name
             FROM tickets t
             JOIN users u ON t.user_id = u.id
             LEFT JOIN users c ON t.claimed_by = c.id
-            WHERE t.is_archived = false
+            WHERE ${whereClause}
+            ORDER BY t.updated_at DESC
+            LIMIT $${pIndex++} OFFSET $${pIndex}
         `;
-        const params = [];
-        let pIndex = 1;
+        params.push(limit, offset);
 
-        if (status) {
-            query += ` AND t.status = $${pIndex++}`;
-            params.push(status);
-        }
-        if (priority) {
-            query += ` AND t.priority = $${pIndex++}`;
-            params.push(priority);
-        }
-
-        query += ` ORDER BY t.updated_at DESC`;
-
-        const result = await db.query(query, params);
-        res.json(result.rows);
+        const result = await db.query(dataQuery, params);
+        
+        res.json({
+            tickets: result.rows,
+            total,
+            page: parseInt(page),
+            pages: Math.ceil(total / limit)
+        });
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: 'Internal Server Error' });

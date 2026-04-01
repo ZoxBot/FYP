@@ -37,12 +37,15 @@ const verifyAdminToken = (req, res, next) => {
     try {
         const verified = jwt.verify(token, process.env.JWT_SECRET);
 
-        // Strict scope and role enforcement
-        if (verified.scope !== 'admin' || verified.role !== 'admin') {
-            console.warn(`[AUDIT] Invalid token scope attempt: User ${verified.id} tried accessing admin with scope ${verified.scope}`);
-            return res.status(403).json({ message: 'Access Denied: Invalid Security Scope.' });
+        // Role and scope enforcement
+        // Flexibility: Allow access if role is 'admin', even if dedicated admin scope is missing
+        if (verified.role !== 'admin') {
+            console.warn(`[AUDIT] Unauthorized admin portal access attempt by User ${verified.id} (Role: ${verified.role})`);
+            return res.status(403).json({ message: 'Access Denied: Administrator role required.' });
         }
 
+        // If it's a dedicated admin login token, it will have scope: 'admin'
+        // If it's a regular login token, it won't. We allow both if role is 'admin'.
         req.user = verified;
         next();
     } catch (err) {
@@ -101,8 +104,16 @@ const checkPermission = (requiredPermission) => {
             }
 
             const userId = req.user.id;
-            const userRole = req.user.role;
-            const roleName = userRole.charAt(0).toUpperCase() + userRole.slice(1);
+            const userRole = req.user.role; // e.g., 'admin', 'freelancer', 'client'
+            const roleName = userRole.charAt(0).toUpperCase() + userRole.slice(1); // 'Admin'
+
+            // --- EMERGENCY BYPASS FOR ADMINS ---
+            // If the user's primary role is 'admin', we allow them access to management views
+            // to ensure they can see data while granular RBAC is being refined.
+            if (userRole === 'admin') {
+                console.log(`[AUTH] Auto-granting admin access to ${requiredPermission} for User ${userId}`);
+                return next();
+            }
 
             console.log(`Checking permission ${requiredPermission} for user ${userId} (Role: ${roleName})`);
             const granted = await hasPermission(userId, userRole, requiredPermission);

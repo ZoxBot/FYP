@@ -21,23 +21,39 @@ export default function AdminTicketsPage() {
     const [tickets, setTickets] = useState<Ticket[]>([]);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        fetchTickets();
-    }, []);
+    // Pagination state
+    const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalTickets, setTotalTickets] = useState(0);
 
     const fetchTickets = async () => {
+        setLoading(true);
         const token = localStorage.getItem('admin_token');
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/admin/tickets`, {
+            const queryParams = new URLSearchParams({
+                page: page.toString(),
+                limit: "20"
+            });
+
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/admin/tickets?${queryParams}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            if (res.ok) setTickets(await res.json());
+            if (res.ok) {
+                const data = await res.json();
+                setTickets(data.tickets);
+                setTotalPages(data.pages);
+                setTotalTickets(data.total);
+            }
         } catch (error) {
             console.error("Fetch tickets error:", error);
         } finally {
             setLoading(false);
         }
     };
+
+    useEffect(() => {
+        fetchTickets();
+    }, [page]);
 
     const getStatusIcon = (status: string) => {
         switch (status) {
@@ -48,17 +64,22 @@ export default function AdminTicketsPage() {
         }
     };
 
-    if (loading) return <div className="text-slate-400">Loading support queue...</div>;
+    if (loading && tickets.length === 0) return (
+        <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+            <div className="text-slate-400 font-medium animate-pulse">Synchronizing support stream...</div>
+        </div>
+    );
 
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <div>
                     <h1 className="text-2xl font-bold text-slate-50">Support Tickets</h1>
-                    <p className="text-slate-400">Manage and respond to platform support requests.</p>
+                    <p className="text-slate-400">Manage and respond to {totalTickets} platform support requests.</p>
                 </div>
                 <div className="flex gap-2">
-                    <Badge variant="outline" className="text-slate-400 border-slate-800">{tickets.length} Total</Badge>
+                    <Badge variant="outline" className="text-slate-400 border-slate-800">{totalTickets} Total</Badge>
                 </div>
             </div>
 
@@ -67,61 +88,91 @@ export default function AdminTicketsPage() {
                     <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
                             <thead>
-                                <tr className="border-b border-slate-800">
-                                    <th className="p-4 text-xs font-medium text-slate-500 uppercase">Ticket</th>
-                                    <th className="p-4 text-xs font-medium text-slate-500 uppercase">User</th>
-                                    <th className="p-4 text-xs font-medium text-slate-500 uppercase">Status</th>
-                                    <th className="p-4 text-xs font-medium text-slate-500 uppercase">Priority</th>
-                                    <th className="p-4 text-xs font-medium text-slate-500 uppercase">Created</th>
-                                    <th className="p-4 text-xs font-medium text-slate-500 uppercase">Action</th>
+                                <tr className="border-b border-slate-800 text-slate-500 text-xs">
+                                    <th className="p-4 font-medium uppercase">Ticket</th>
+                                    <th className="p-4 font-medium uppercase">User</th>
+                                    <th className="p-4 font-medium uppercase">Status</th>
+                                    <th className="p-4 font-medium uppercase">Priority</th>
+                                    <th className="p-4 font-medium uppercase">Created</th>
+                                    <th className="p-4 font-medium uppercase text-right">Action</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                {tickets.map((ticket) => (
-                                    <tr key={ticket.id} className="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors">
-                                        <td className="p-4">
-                                            <div className="font-medium text-slate-200">{ticket.subject}</div>
-                                            <div className="text-xs text-slate-500">ID: #{ticket.id}</div>
-                                        </td>
-                                        <td className="p-4">
-                                            <div className="text-sm text-slate-300">{ticket.first_name} {ticket.last_name}</div>
-                                        </td>
-                                        <td className="p-4">
-                                            <div className="flex items-center gap-2">
-                                                {getStatusIcon(ticket.status)}
-                                                <span className="text-xs capitalize text-slate-400">{ticket.status.replace('_', ' ')}</span>
-                                            </div>
-                                        </td>
-                                        <td className="p-4">
-                                            <Badge variant="outline" className={cn(
-                                                "text-[10px] uppercase",
-                                                ticket.priority === 'urgent' ? "border-red-500 text-red-500" :
-                                                    ticket.priority === 'high' ? "border-orange-500 text-orange-500" :
-                                                        "border-slate-700 text-slate-500"
-                                            )}>
-                                                {ticket.priority}
-                                            </Badge>
-                                        </td>
-                                        <td className="p-4 text-xs text-slate-500">
-                                            {new Date(ticket.created_at).toLocaleDateString()}
-                                        </td>
-                                        <td className="p-4">
-                                            <Button variant="ghost" size="sm" className="text-blue-400 hover:text-blue-300 hover:bg-blue-400/10" asChild>
-                                                <Link href={`/admin/tickets/${ticket.id}`}>
-                                                    View <ExternalLink className="ml-1 h-3 w-3" />
-                                                </Link>
-                                            </Button>
-                                        </td>
-                                    </tr>
-                                ))}
-                                {tickets.length === 0 && (
+                            <tbody className="divide-y divide-slate-800/50">
+                                {tickets.length === 0 ? (
                                     <tr>
                                         <td colSpan={6} className="p-8 text-center text-slate-500 italic">No tickets found in the queue.</td>
                                     </tr>
+                                ) : (
+                                    tickets.map((ticket) => (
+                                        <tr key={ticket.id} className="hover:bg-slate-800/30 transition-colors">
+                                            <td className="p-4">
+                                                <div className="font-medium text-slate-200">{ticket.subject}</div>
+                                                <div className="text-xs text-slate-500">ID: #{ticket.id}</div>
+                                            </td>
+                                            <td className="p-4">
+                                                <div className="text-sm text-slate-300">{ticket.first_name} {ticket.last_name}</div>
+                                            </td>
+                                            <td className="p-4">
+                                                <div className="flex items-center gap-2">
+                                                    {getStatusIcon(ticket.status)}
+                                                    <span className="text-xs capitalize text-slate-400">{ticket.status.replace('_', ' ')}</span>
+                                                </div>
+                                            </td>
+                                            <td className="p-4">
+                                                <Badge variant="outline" className={cn(
+                                                    "text-[10px] uppercase",
+                                                    ticket.priority === 'urgent' ? "border-red-500 text-red-500" :
+                                                        ticket.priority === 'high' ? "border-orange-500 text-orange-500" :
+                                                            "border-slate-700 text-slate-500"
+                                                )}>
+                                                    {ticket.priority}
+                                                </Badge>
+                                            </td>
+                                            <td className="p-4 text-xs text-slate-500 font-mono">
+                                                {new Date(ticket.created_at).toLocaleDateString()}
+                                            </td>
+                                            <td className="p-4 text-right">
+                                                <Button variant="ghost" size="sm" className="text-blue-400 hover:text-blue-300 hover:bg-blue-400/10 h-8 gap-1" asChild>
+                                                    <Link href={`/admin/tickets/${ticket.id}`}>
+                                                        View <ExternalLink className="h-3.5 w-3.5" />
+                                                    </Link>
+                                                </Button>
+                                            </td>
+                                        </tr>
+                                    ))
                                 )}
                             </tbody>
                         </table>
                     </div>
+                    
+                    {/* Pagination Controls */}
+                    {totalPages > 1 && (
+                        <div className="flex items-center justify-between p-4 border-t border-slate-800">
+                            <p className="text-sm text-slate-400">
+                                Showing page {page} of {totalPages} ({totalTickets} total)
+                            </p>
+                            <div className="flex gap-2">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    disabled={page === 1 || loading}
+                                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                                    className="border-slate-800 bg-slate-900 text-slate-300 hover:bg-slate-800"
+                                >
+                                    Previous
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    disabled={page === totalPages || loading}
+                                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                                    className="border-slate-800 bg-slate-900 text-slate-300 hover:bg-slate-800"
+                                >
+                                    Next
+                                </Button>
+                            </div>
+                        </div>
+                    )}
                 </CardContent>
             </Card>
         </div>

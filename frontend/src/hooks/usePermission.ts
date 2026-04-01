@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 
 // Assuming you have a way to get the token, e.g. from localStorage or context
-const getToken = () => localStorage.getItem('token');
+const getToken = () => localStorage.getItem('token') || localStorage.getItem('admin_token');
 
 export function usePermission() {
     const [permissions, setPermissions] = useState<string[]>([]);

@@ -151,14 +151,26 @@ router.get('/me/permissions', async (req, res) => {
 // 7.1. Get Audit Logs
 router.get('/logs', checkPermission('audit.view'), async (req, res) => {
     try {
+        const { page = 1, limit = 50 } = req.query;
+        const offset = (page - 1) * limit;
+
+        const countRes = await db.query('SELECT COUNT(*) FROM audit_logs');
+        const total = parseInt(countRes.rows[0].count);
+
         const result = await db.query(`
             SELECT l.*, u.first_name, u.last_name, u.email 
             FROM audit_logs l
             LEFT JOIN users u ON l.admin_id = u.id
             ORDER BY l.created_at DESC
-            LIMIT 100
-        `);
-        res.json(result.rows);
+            LIMIT $1 OFFSET $2
+        `, [limit, offset]);
+
+        res.json({
+            logs: result.rows,
+            total,
+            page: parseInt(page),
+            pages: Math.ceil(total / limit)
+        });
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: 'Internal Server Error' });
@@ -263,24 +275,62 @@ router.get('/stats', async (req, res) => {
 // 9. Get All Users (with Admin Role info)
 router.get('/users', checkPermission('user.view'), async (req, res) => {
     try {
-        // Left join to get admin role name if they have one
-        const query = `
+        const { page = 1, limit = 20, search = '', role = '' } = req.query;
+        const offset = (page - 1) * limit;
+
+        let whereClause = '';
+        const params = [];
+        let paramIndex = 1;
+
+        if (search) {
+            whereClause += `(u.email ILIKE $${paramIndex} OR u.first_name ILIKE $${paramIndex} OR u.last_name ILIKE $${paramIndex})`;
+            params.push(`%${search}%`);
+            paramIndex++;
+        }
+
+        if (role) {
+            if (whereClause) whereClause += ' AND ';
+            whereClause += `(u.role = $${paramIndex} OR ar.name = $${paramIndex})`;
+            params.push(role);
+            paramIndex++;
+        }
+
+        const countQuery = `
+            SELECT COUNT(DISTINCT u.id) 
+            FROM users u
+            LEFT JOIN admin_user_roles aur ON u.id = aur.user_id
+            LEFT JOIN admin_roles ar ON aur.role_id = ar.id
+            ${whereClause ? 'WHERE ' + whereClause : ''}
+        `;
+        const countRes = await db.query(countQuery, params);
+        const total = parseInt(countRes.rows[0].count);
+
+        const dataQuery = `
             SELECT u.id, u.first_name, u.last_name, u.email, u.role as user_role, u.is_verified, u.is_banned, u.created_at,
                    ar.name as admin_role_name
             FROM users u
             LEFT JOIN admin_user_roles aur ON u.id = aur.user_id
             LEFT JOIN admin_roles ar ON aur.role_id = ar.id
+            ${whereClause ? 'WHERE ' + whereClause : ''}
             ORDER BY u.created_at DESC
+            LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
         `;
-        const result = await db.query(query);
+        params.push(limit);
+        params.push(offset);
+        
+        const result = await db.query(dataQuery, params);
 
-        // Map result to format expected by frontend (overriding 'role' with admin role if exists, or keeping user_role)
         const mappedUsers = result.rows.map(user => ({
             ...user,
-            role: user.admin_role_name || user.user_role // Show 'Administrator' instead of 'client' if applicable
+            role: user.admin_role_name || user.user_role
         }));
 
-        res.json(mappedUsers);
+        res.json({
+            users: mappedUsers,
+            total,
+            page: parseInt(page),
+            pages: Math.ceil(total / limit)
+        });
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: 'Something went wrong on our end. Please try again later.' });
@@ -290,13 +340,54 @@ router.get('/users', checkPermission('user.view'), async (req, res) => {
 // 10. Get All Jobs
 router.get('/jobs', checkPermission('job.view'), async (req, res) => {
     try {
-        const result = await db.query(`
+        const { page = 1, limit = 20, search = '', status = '' } = req.query;
+        const offset = (page - 1) * limit;
+
+        let whereClause = '';
+        const params = [];
+        let paramIndex = 1;
+
+        if (search) {
+            whereClause += `(j.title ILIKE $${paramIndex} OR u.email ILIKE $${paramIndex})`;
+            params.push(`%${search}%`);
+            paramIndex++;
+        }
+
+        if (status) {
+            if (whereClause) whereClause += ' AND ';
+            whereClause += `j.status = $${paramIndex}`;
+            params.push(status);
+            paramIndex++;
+        }
+
+        const countQuery = `
+            SELECT COUNT(*) 
+            FROM jobs j
+            JOIN users u ON j.client_id = u.id
+            ${whereClause ? 'WHERE ' + whereClause : ''}
+        `;
+        const countRes = await db.query(countQuery, params);
+        const total = parseInt(countRes.rows[0].count);
+
+        const dataQuery = `
             SELECT j.*, u.first_name, u.last_name, u.email 
             FROM jobs j
             JOIN users u ON j.client_id = u.id
+            ${whereClause ? 'WHERE ' + whereClause : ''}
             ORDER BY j.created_at DESC
-        `);
-        res.json(result.rows);
+            LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+        `;
+        params.push(limit);
+        params.push(offset);
+
+        const result = await db.query(dataQuery, params);
+
+        res.json({
+            jobs: result.rows,
+            total,
+            page: parseInt(page),
+            pages: Math.ceil(total / limit)
+        });
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: 'Something went wrong on our end. Please try again later.' });

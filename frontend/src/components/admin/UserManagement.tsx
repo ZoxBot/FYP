@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, Ban, Shield, FilePenLine, UserCog, Users } from "lucide-react"; // UserCog for role, Users for groups
+import { CheckCircle, Ban, Shield, FilePenLine, UserCog, Users, XCircle } from "lucide-react"; // UserCog for role, Users for groups
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -219,11 +219,17 @@ export function UserManagement({ users, allPermissions, onRefresh }: UserManagem
                                 </div>
                             </TableCell>
                             <TableCell className="text-right">
-                                {/* Verification */}
-                                {!user.is_verified && can('user.verify') && (
-                                    <Button size="sm" variant="outline" className="text-emerald-500 border-emerald-500/20 hover:bg-emerald-500/10" onClick={() => handleUserAction(user.id, 'verify')}>
-                                        <CheckCircle className="h-4 w-4 mr-1" /> Verify
-                                    </Button>
+                                {/* Verification Toggle */}
+                                {can('user.verify') && (
+                                    user.is_verified ? (
+                                        <Button size="sm" variant="ghost" className="text-orange-500 hover:text-orange-400 hover:bg-orange-500/10" onClick={() => handleUserAction(user.id, 'unverify')} title="Revoke Verification">
+                                            <XCircle className="h-4 w-4 mr-1" /> Revoke
+                                        </Button>
+                                    ) : (
+                                        <Button size="sm" variant="outline" className="text-emerald-500 border-emerald-500/20 hover:bg-emerald-500/10" onClick={() => handleUserAction(user.id, 'verify')}>
+                                            <CheckCircle className="h-4 w-4 mr-1" /> Verify
+                                        </Button>
+                                    )
                                 )}
 
                                 {/* Banning */}

@@ -2,10 +2,18 @@
 
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import dynamic from "next/dynamic";
 import { Users, Briefcase, Shield, AlertTriangle, Activity, TrendingUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { AnalyticsCharts } from "@/components/admin/AnalyticsCharts";
-import { DataExportButtons } from "@/components/admin/DataExportButtons";
+
+// Dynamic imports to prevent SSR issues with charts and browser APIs
+const AnalyticsCharts = dynamic(() => import("@/components/admin/AnalyticsCharts").then(mod => mod.AnalyticsCharts), { 
+    ssr: false,
+    loading: () => <div className="h-[600px] w-full bg-slate-900/50 animate-pulse rounded-2xl" />
+});
+const DataExportButtons = dynamic(() => import("@/components/admin/DataExportButtons").then(mod => mod.DataExportButtons), { 
+    ssr: false 
+});
 
 interface Stats {
     users: number;

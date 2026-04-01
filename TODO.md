@@ -53,3 +53,22 @@ These features add that final layer of polish, speed, and administrative ease.
 - [ ] **Bookmarks / Saved Jobs:** Allow freelancers to "save" jobs to view later.
 - [ ] **Social Links & External Portfolios:** Allow users to link their GitHub, LinkedIn, or Dribbble accounts directly on their profiles.
 - [ ] **File Attachments in Chat:** Allow users to upload and share files/images securely within messages using Cloudinary.
+
+
+
+Build Error
+
+Ecmascript file had an error
+
+./src/app/(app)/user/[id]/page.tsx (1:10)
+
+Ecmascript file had an error
+> 1 | import { useEffect, useState, use } from "react";
+    |          ^^^^^^^^^
+  2 | import { cn } from "@/lib/utils";
+  3 | import { PageHeader } from "@/components/page-header";
+  4 | import { Card, CardContent, CardHeader } from "@/components/ui/card";
+
+You're importing a component that needs `useEffect`. This React hook only works in a client component. To fix, mark the file (or its parent) with the `"use client"` directive.
+
+ Learn more: https://nextjs.org/docs/app/api-reference/directives/use-client

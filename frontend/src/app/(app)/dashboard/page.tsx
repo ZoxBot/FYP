@@ -62,6 +62,16 @@ export default function Dashboard() {
     }
 
     try {
+      // Check user role first
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        const userData = JSON.parse(userStr);
+        if (userData.role === 'client') {
+          router.replace('/client');
+          return;
+        }
+      }
+
       const [tasksRes, bidsRes, savedRes, walletRes, statusRes] = await Promise.all([
         fetch(`${API_URL}/api/freelancer/tasks`, { headers: { Authorization: `Bearer ${token}` } }),
         fetch(`${API_URL}/api/freelancer/bids`, { headers: { Authorization: `Bearer ${token}` } }),

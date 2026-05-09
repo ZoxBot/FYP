@@ -15,27 +15,26 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Plus } from "lucide-react";
-import dynamic from 'next/dynamic';
- 
-const ReactQuill = dynamic(() => import('react-quill'), { 
-  ssr: false,
-  loading: () => <div className="h-[150px] w-full bg-muted animate-pulse rounded-md" />
-});
 import { usePermission } from "@/hooks/usePermission";
 import { getErrorMessage } from "@/lib/utils";
 
 interface PostJobDialogProps {
     onJobPosted: () => void;
+    open?: boolean;
+    onOpenChange?: (open: boolean) => void;
 }
 
-export function PostJobDialog({ onJobPosted }: PostJobDialogProps) {
-    const [open, setOpen] = useState(false);
+export function PostJobDialog({ onJobPosted, open: externalOpen, onOpenChange: externalOnOpenChange }: PostJobDialogProps) {
+    const [internalOpen, setInternalOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const { can } = usePermission();
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
     const [budget, setBudget] = useState("");
     const [deadline, setDeadline] = useState("");
+
+    const open = externalOpen !== undefined ? externalOpen : internalOpen;
+    const setOpen = externalOnOpenChange !== undefined ? externalOnOpenChange : setInternalOpen;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -54,11 +53,15 @@ export function PostJobDialog({ onJobPosted }: PostJobDialogProps) {
                     title,
                     description,
                     budget: parseFloat(budget),
+                    category: 'Standard', // Added default since it's required in backend schema but missing in form
                     deadline: deadline || null // Optional
                 })
             });
 
-            if (!res.ok) throw new Error(getErrorMessage(res.status));
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.message || getErrorMessage(res.status));
+            }
 
             setOpen(false);
             setTitle("");
@@ -102,14 +105,14 @@ export function PostJobDialog({ onJobPosted }: PostJobDialogProps) {
                         </div>
                         <div className="grid gap-2">
                             <Label htmlFor="description">Description</Label>
-                            <div className="min-h-[200px] bg-white text-black rounded-md overflow-hidden">
-                                <ReactQuill
-                                    theme="snow"
-                                    value={description}
-                                    onChange={setDescription}
-                                    placeholder="Detailed requirements, skills needed, etc..."
-                                />
-                            </div>
+                            <Textarea
+                                id="description"
+                                placeholder="Detailed requirements, skills needed, etc..."
+                                className="min-h-[200px]"
+                                value={description}
+                                onChange={(e) => setDescription(e.target.value)}
+                                required
+                            />
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="grid gap-2">
@@ -135,7 +138,7 @@ export function PostJobDialog({ onJobPosted }: PostJobDialogProps) {
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button type="submit" disabled={loading || !can('job.post')}>
+                        <Button type="submit" disabled={loading}>
                             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             Post Project
                         </Button>

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 import DOMPurify from "dompurify";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -54,8 +55,8 @@ interface Bid {
   is_verified: boolean;
 }
 
-export default function TaskDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+export default function TaskDetailPage() {
+  const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { toast } = useToast();
   const [job, setJob] = useState<Job | null>(null);
@@ -92,9 +93,13 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
         const data = await res.json();
         setJob(data);
         // If owner or admin or selected freelancer or freelancer, fetch bids
+        const user = JSON.parse(localStorage.getItem("user") || "{}");
         const token = localStorage.getItem("token");
-        const userRole = localStorage.getItem("userRole");
-        if (token && (data.client_id === currentUser?.id || data.selected_freelancer_id === currentUser?.id || userRole === 'admin' || userRole === 'freelancer')) {
+        const userRole = user.role || localStorage.getItem("userRole");
+        const currentUserId = user.id || currentUser?.id;
+        
+        // Final condition: if we have a token and the user is involved or is a freelancer/admin
+        if (token && (data.client_id === currentUserId || data.selected_freelancer_id === currentUserId || userRole === 'admin' || userRole === 'freelancer' || userRole === 'client')) {
           fetchBids();
         }
         fetchReviews();

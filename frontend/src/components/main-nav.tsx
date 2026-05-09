@@ -31,14 +31,46 @@ const navItems = [
 ];
 export function MainNav({ isCollapsed }: { isCollapsed: boolean }) {
   const pathname = usePathname();
+  const { can } = usePermission();
+  const [userRole, setUserRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    const user = localStorage.getItem("user");
+    if (user) {
+      const userData = JSON.parse(user);
+      setUserRole(userData.role);
+    }
+  }, []);
+
+  const items = [
+    {
+      href: userRole === "client" ? "/client" : "/dashboard",
+      icon: LayoutDashboard,
+      label: "Dashboard",
+    },
+    { href: "/tasks", icon: Briefcase, label: "Tasks" },
+    { href: "/messages", icon: MessageSquare, label: "Messages" },
+    { href: "/profile", icon: User, label: "Profile" },
+    { href: "/settings", icon: Settings, label: "Settings" },
+    { href: "/support/tickets", icon: LifeBuoy, label: "Tickets" },
+  ];
+
+  // Add "Post a Task" for clients with permission
+  if (userRole === "client" || can("job.post")) {
+    items.splice(2, 0, {
+      href: "/client#post-job",
+      icon: Shield,
+      label: "Post a Task",
+    });
+  }
 
   return (
     <TooltipProvider>
       <nav className="grid gap-2 px-2">
-        {navItems.map((item) => {
-          const isActive = pathname.startsWith(item.href);
+        {items.map((item) => {
+          const isActive = pathname === item.href || (item.href === "/dashboard" && pathname === "/dashboard");
           return isCollapsed ? (
-            <Tooltip key={item.href} delayDuration={0}>
+            <Tooltip key={item.label} delayDuration={0}>
               <TooltipTrigger asChild>
                 <Link
                   href={item.href}
@@ -55,7 +87,7 @@ export function MainNav({ isCollapsed }: { isCollapsed: boolean }) {
             </Tooltip>
           ) : (
             <Link
-              key={item.href}
+              key={item.label}
               href={item.href}
               className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-foreground",

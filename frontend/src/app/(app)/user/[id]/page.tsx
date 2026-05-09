@@ -1,4 +1,6 @@
-import { useEffect, useState, use } from "react";
+"use client";
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -27,8 +29,8 @@ interface UserProfile {
   website_url?: string;
 }
 
-export default function PublicProfilePage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+export default function PublicProfilePage() {
+  const { id } = useParams<{ id: string }>();
   const [user, setUser] = useState<UserProfile | null>(null);
   const [reviewsData, setReviewsData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);

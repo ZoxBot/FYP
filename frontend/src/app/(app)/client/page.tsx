@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Briefcase, CreditCard } from "lucide-react";
+import { Briefcase, CreditCard, CheckCircle, Shield } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { PostJobDialog } from "@/components/post-job-dialog";
 import { usePermission } from "@/hooks/usePermission";
@@ -17,12 +17,15 @@ type JobData = {
     budget: string;
     status: string;
     created_at: string;
+    bid_count?: number | string;
 };
 
 export default function ClientDashboard() {
     const [jobs, setJobs] = useState<JobData[]>([]);
     const [loading, setLoading] = useState(true);
-    const { can } = usePermission();
+    const [isPostDialogOpen, setIsPostDialogOpen] = useState(false);
+    const [isVerified, setIsVerified] = useState(false);
+    const { can, loading: permsLoading } = usePermission();
     const router = useRouter();
 
     const fetchJobs = async () => {
@@ -30,15 +33,25 @@ export default function ClientDashboard() {
         if (!token) return;
 
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/client/jobs`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            if (res.ok) {
-                const data = await res.json();
+            const [jobsRes, statusRes] = await Promise.all([
+                fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/client/jobs`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                }),
+                fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/verification/status`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                })
+            ]);
+            
+            if (jobsRes.ok) {
+                const data = await jobsRes.json();
                 setJobs(data);
             }
+            if (statusRes.ok) {
+                const statusData = await statusRes.json();
+                setIsVerified(statusData.isVerified);
+            }
         } catch (error) {
-            console.error("Failed to fetch jobs", error);
+            console.error("Failed to fetch dashboard data", error);
         } finally {
             setLoading(false);
         }
@@ -51,13 +64,20 @@ export default function ClientDashboard() {
             return;
         }
         fetchJobs();
+
+        // Check for #post-job hash
+        if (window.location.hash === '#post-job') {
+            setIsPostDialogOpen(true);
+            // Optionally clear the hash
+            window.history.replaceState(null, '', window.location.pathname);
+        }
     }, [router]);
 
-    if (loading) {
-        return <div className="p-8">Loading...</div>;
+    if (loading || permsLoading) {
+        return <div className="p-8 text-center">Loading dashboard...</div>;
     }
 
-    const activeJobs = jobs.filter(j => j.status === 'active').length;
+    const activeJobs = jobs.filter(j => j.status === 'active' || j.status === 'open').length;
     // Calculate total budget of all posted jobs (just as a sample stat)
     const totalBudget = jobs.reduce((acc, job) => acc + parseFloat(job.budget), 0);
 
@@ -66,10 +86,31 @@ export default function ClientDashboard() {
             <div className="flex items-center justify-between mb-6">
                 <PageHeader
                     title="Client Dashboard"
-                    description="Manage your projects and hire freelancers."
+                    description={
+                        <div className="flex items-center gap-1">
+                            Manage your projects and hire freelancers.
+                            {isVerified && <span title="Verified Client"><CheckCircle className="h-4 w-4 text-blue-500 fill-blue-500/10" /></span>}
+                        </div>
+                    }
                 />
-                {can('job.post') && <PostJobDialog onJobPosted={fetchJobs} />}
+                <PostJobDialog
+                    open={isPostDialogOpen}
+                    onOpenChange={setIsPostDialogOpen}
+                    onJobPosted={fetchJobs}
+                />
             </div>
+
+            {!isVerified && !permsLoading && !can('job.post') && (
+                <Card className="mb-6 border-orange-500/50 bg-orange-500/10 backdrop-blur-sm">
+                    <CardContent className="p-4 flex items-center gap-4">
+                        <Shield className="h-8 w-8 text-orange-500" />
+                        <div>
+                            <p className="font-bold text-orange-700 dark:text-orange-400">Account Not Fully Verified</p>
+                            <p className="text-sm text-muted-foreground">Please complete your verification in Settings to start posting jobs. If you recently submitted, please wait for admin approval.</p>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mb-8">
                 <Card>
@@ -109,6 +150,7 @@ export default function ClientDashboard() {
                                 <TableHead>Title</TableHead>
                                 <TableHead>Budget</TableHead>
                                 <TableHead>Status</TableHead>
+                                <TableHead>Bids</TableHead>
                                 <TableHead>Created</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -139,6 +181,11 @@ export default function ClientDashboard() {
                                             }
                                         >
                                             {job.status.replace('_', ' ')}
+                                        </Badge>
+                                    </TableCell>
+                                    <TableCell>
+                                        <Badge variant="outline" className="bg-slate-50">
+                                            {job.bid_count || 0} Bids
                                         </Badge>
                                     </TableCell>
                                     <TableCell className="text-muted-foreground">

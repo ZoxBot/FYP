@@ -15,12 +15,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Edit } from "lucide-react";
-import dynamic from 'next/dynamic';
- 
-const ReactQuill = dynamic(() => import('react-quill'), { 
-    ssr: false,
-    loading: () => <div className="h-[120px] w-full bg-muted animate-pulse rounded-md" />
-});
 import { getErrorMessage } from "@/lib/utils";
 
 interface EditJobDialogProps {
@@ -108,13 +102,13 @@ export function EditJobDialog({ job, onJobUpdated }: EditJobDialogProps) {
                         </div>
                         <div className="grid gap-2">
                             <Label htmlFor="description">Description</Label>
-                            <div className="min-h-[150px] bg-white text-black rounded-md overflow-hidden">
-                                <ReactQuill
-                                    theme="snow"
-                                    value={description}
-                                    onChange={setDescription}
-                                />
-                            </div>
+                            <Textarea
+                                id="description"
+                                value={description}
+                                onChange={(e) => setDescription(e.target.value)}
+                                className="min-h-[150px]"
+                                required
+                            />
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="grid gap-2">

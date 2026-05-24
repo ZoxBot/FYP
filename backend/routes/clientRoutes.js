@@ -7,7 +7,12 @@ const { verifyToken } = require('../middleware/authMiddleware');
 router.get('/jobs', verifyToken, async (req, res) => {
     try {
         const result = await db.query(
-            'SELECT * FROM jobs WHERE client_id = $1 ORDER BY created_at DESC',
+            `SELECT j.*, COUNT(b.id) AS bid_count 
+             FROM jobs j 
+             LEFT JOIN bids b ON j.id = b.job_id 
+             WHERE j.client_id = $1 
+             GROUP BY j.id 
+             ORDER BY j.created_at DESC`,
             [req.user.id]
         );
         res.json(result.rows);

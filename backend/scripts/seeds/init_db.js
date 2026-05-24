@@ -4,7 +4,7 @@ const path = require('path');
 
 async function initDb() {
     try {
-        const sql = fs.readFileSync(path.join(__dirname, 'database.sql'), 'utf8');
+        const sql = fs.readFileSync(path.join(__dirname, '../../schema/database.sql'), 'utf8');
         await db.query(sql);
         console.log("Database initialized successfully");
         process.exit(0);

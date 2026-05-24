@@ -41,7 +41,7 @@ router.post('/', verifyToken, checkPermission('job.post'), validate(jobSchema), 
 // 2. Get All Jobs (with filters & pagination)
 router.get('/', async (req, res) => {
     try {
-        const { search, category, min_budget, max_budget, sort, page = 1, limit = 10 } = req.query;
+        const { search, category, min_budget, max_budget, status, sort, page = 1, limit = 10 } = req.query;
         const p = parseInt(page);
         const l = parseInt(limit);
         const offset = (p - 1) * l;
@@ -68,6 +68,12 @@ router.get('/', async (req, res) => {
         if (max_budget) {
             filterQuery += ` AND j.budget <= $${paramIndex}`;
             params.push(max_budget);
+            paramIndex++;
+        }
+        if (status && status !== 'all' && status !== 'All') {
+            const dbStatus = status === 'open' ? 'active' : status;
+            filterQuery += ` AND j.status = $${paramIndex}`;
+            params.push(dbStatus);
             paramIndex++;
         }
  

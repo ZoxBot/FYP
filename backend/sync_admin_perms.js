@@ -6,7 +6,7 @@ async function grantAllToAdmin() {
         console.log("Granting all permissions to standard 'Admin' and 'Higher Admin' roles...");
         
         // 1. Get role IDs
-        const rolesRes = await db.query("SELECT id FROM admin_roles WHERE name IN ('Administrator', 'Full Admin', 'Standard Admin')");
+        const rolesRes = await db.query("SELECT id FROM admin_roles WHERE name IN ('Administrator', 'Higher Admin', 'Admin', 'Full Admin', 'Standard Admin')");
         const roleIds = rolesRes.rows.map(r => r.id);
         
         if (roleIds.length === 0) {

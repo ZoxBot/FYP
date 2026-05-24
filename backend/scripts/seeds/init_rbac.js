@@ -8,7 +8,7 @@ async function initRbac() {
         console.log("Starting RBAC Initialization...");
 
         // 1. Run SQL Schema
-        const sql = fs.readFileSync(path.join(__dirname, 'database_rbac.sql'), 'utf8');
+        const sql = fs.readFileSync(path.join(__dirname, '../../schema/database_rbac.sql'), 'utf8');
         await db.query(sql);
         console.log("RBAC Tables Created.");
 
@@ -59,6 +59,7 @@ async function initRbac() {
         await insertPerm('document.reject', 'Reject Documents', pDocs);
 
         // Users
+        await insertPerm('user.view', 'View Users List', pUsers);
         await insertPerm('user.verify', 'Verify User', pUsers);
         await insertPerm('user.ban', 'Ban User', pUsers);
         await insertPerm('user.kick', 'Kick User', pUsers); // Maybe "kick" means force logout?
@@ -77,6 +78,12 @@ async function initRbac() {
         await insertPerm('job.suspend', 'Suspend Jobs', pJobs);
         await insertPerm('job.view', 'View Jobs', pJobs); // Ensure view is added in init too
         await insertPerm('report.handle', 'Handle Reports', pJobs);
+        
+        // System & Audit (New)
+        const pSystem = await insertPerm('system', 'System Management Group');
+        await insertPerm('audit.view', 'View System Audit Logs', pSystem);
+        await insertPerm('settings.view', 'View Platform Settings', pSystem);
+        await insertPerm('settings.manage', 'Modify Platform Settings', pSystem);
 
         // Groups
         const pAdminGroups = await insertPerm('group', 'Admin Group Management', pUsers);

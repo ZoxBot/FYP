@@ -117,7 +117,7 @@ export default function TasksPage() {
   // Reset page when filters change
   useEffect(() => {
     setPage(1);
-  }, [search, category, minBudget, maxBudget, sort]);
+  }, [search, category, minBudget, maxBudget, sort, statusFilter]);
  
   useEffect(() => {
     const fetchJobs = async () => {
@@ -135,6 +135,8 @@ export default function TasksPage() {
       if (minBudget) params.append("min_budget", minBudget);
       if (maxBudget) params.append("max_budget", maxBudget);
       if (sort) params.append("sort", sort);
+      if (statusFilter && statusFilter !== "all") params.append("status", statusFilter);
+      params.append("limit", "10");
       params.append("page", page.toString());
  
       try {
@@ -155,7 +157,7 @@ export default function TasksPage() {
       }
     };
     fetchJobs();
-  }, [search, category, minBudget, maxBudget, sort, page]);
+  }, [search, category, minBudget, maxBudget, sort, page, statusFilter]);
 
   // Handle Search submit
   const handleSearch = (e: React.FormEvent) => {
@@ -163,9 +165,7 @@ export default function TasksPage() {
     setSearch(searchInput);
   };
 
-  const filteredJobs = statusFilter === "all" 
-    ? jobs 
-    : jobs.filter(j => j.status === statusFilter);
+  const filteredJobs = jobs;
 
   return (
     <div className="flex flex-col h-[calc(100vh-7.5rem)] md:h-[calc(100vh-7rem)] overflow-hidden">
@@ -264,7 +264,7 @@ export default function TasksPage() {
                               {job.category || "Uncategorized"}
                             </Badge>
                             <Badge className={`text-[10px] font-bold uppercase tracking-wide px-3 py-1 border-none shadow-sm ${
-                              job.status === 'open' ? 'bg-primary text-primary-foreground shadow-primary/20' : 'bg-foreground text-background'
+                              (job.status === 'open' || job.status === 'active') ? 'bg-primary text-primary-foreground shadow-primary/20' : 'bg-foreground text-background'
                             }`}>
                               {job.status.replace('_', ' ')}
                             </Badge>
@@ -314,7 +314,7 @@ export default function TasksPage() {
                       </div>
                       <Button asChild className="w-full h-11 rounded-xl font-bold text-sm bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-300 shadow-sm shadow-primary/20">
                         <Link href={`/tasks/${job.id}`}>
-                          {job.status === 'open' ? 'View Details' : 'Review Scope'}
+                          {(job.status === 'open' || job.status === 'active') ? 'View Details' : 'Review Scope'}
                         </Link>
                       </Button>
                     </CardFooter>

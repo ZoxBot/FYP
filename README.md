@@ -72,7 +72,7 @@ Kaamko Kura is a comprehensive freelance marketplace platform connecting clients
 4. **Production Hardening**: Configuring secure HTTP-only cookies and production-grade environment variables.
 
 <!-- superadmin@kaamkokura.com
-SuperAdmin123 -->
+SuperAdmin123! -->
 
 
 

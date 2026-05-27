@@ -4,7 +4,7 @@ Kaamko Kura is a comprehensive freelance marketplace platform connecting clients
 
 ## 🚀 Technology Stack
 
-- **Frontend**: Next.js (App Router), TypeScript, Tailwind CSS, Shadcn UI
+- **Frontend**: Next.js (App Router), , Tailwind CSS, Shadcn UI
 - **Backend**: Node.js, Express.js
 - **Database**: PostgreSQL
 - **Cloud Storage**: Cloudinary (Avatars, Verification Documents, Support Attachments)
